@@ -59,3 +59,15 @@ jobs:
           COSIGN_PRIVATE_KEY: ${{ secrets.COSIGN_PRIVATE_KEY }}
         run: |
           cosign sign --key env://COSIGN_PRIVATE_KEY yatharthchandel/order-service@${{ steps.build.outputs.digest }}
+
+      - name: Update gitops-manifests
+        if: github.ref == 'refs/heads/main'
+        run: |
+          git clone https://x-access-token:${{ secrets.GITOPS_PAT }}@github.com/yatharth-c-2007/gitops-manifests.git
+          cd gitops-manifests
+          sed -i 's|yatharthchandel/order-service:v1|yatharthchandel/order-service@${{ steps.build.outputs.digest }}|g' order-service/deployment.yaml
+          git config user.email "ci@ci.com"
+          git config user.name "CI Bot"
+          git add order-service/deployment.yaml
+          git commit -m "Update order-service image to ${{ steps.build.outputs.digest }}"
+          git push
